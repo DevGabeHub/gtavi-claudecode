@@ -6,7 +6,46 @@ ROOT = Path(os.environ.get("CLIP_DESK_HOME", Path.cwd()))
 JOBS = ROOT / "jobs"
 
 
-def tool(name):
+# Full ffmpeg builds that are not on PATH by default (Homebrew installs ffmpeg-full keg-only).
+FFMPEG_DIRS = ["/opt/homebrew/opt/ffmpeg-full/bin", "/usr/local/opt/ffmpeg-full/bin"]
+_ffmpeg_dir = {}
+
+
+def _has_subtitles(ffmpeg):
+    try:
+        r = subprocess.run([ffmpeg, "-hide_banner", "-filters"], text=True, capture_output=True, timeout=20)
+    except Exception:
+        return False
+    return any(line.split()[1:2] == ["subtitles"] for line in r.stdout.splitlines() if line.strip())
+
+
+def ffmpeg_dir(need_subs=False):
+    """Folder of the ffmpeg to use. Prefers a build with libass (the subtitles filter), which burned captions need.
+
+    Order: $FFMPEG_DIR, Homebrew ffmpeg-full, then ffmpeg on PATH. The plain Homebrew `ffmpeg` has no libass.
+    """
+    if "dir" not in _ffmpeg_dir:
+        exe = "ffmpeg.exe" if sys.platform == "win32" else "ffmpeg"
+        cands = [os.environ.get("FFMPEG_DIR")] + FFMPEG_DIRS + [str(Path(p).parent) if (p := shutil.which("ffmpeg")) else None]
+        cands = [c for c in dict.fromkeys(cands) if c and (Path(c) / exe).exists()]
+        if not cands:
+            sys.exit("ffmpeg not found. Run the setup skill first (it installs ffmpeg and yt-dlp).")
+        with_subs = next((c for c in cands if _has_subtitles(str(Path(c) / exe))), None)
+        _ffmpeg_dir["dir"], _ffmpeg_dir["subs"] = with_subs or cands[0], bool(with_subs)
+    if need_subs and not _ffmpeg_dir["subs"]:
+        hint = ("brew install ffmpeg-full (the plain `brew install ffmpeg` has no libass)" if sys.platform == "darwin"
+                else "install an ffmpeg build with libass, or set FFMPEG_DIR to its folder")
+        sys.exit(f"ffmpeg in {_ffmpeg_dir['dir']} has no 'subtitles' filter (libass), so captions cannot be burned in.\n"
+                 f"Fix: {hint}. The scripts find it on their own.")
+    return _ffmpeg_dir["dir"]
+
+
+def tool(name, need_subs=False):
+    if name in ("ffmpeg", "ffprobe"):
+        exe = name + (".exe" if sys.platform == "win32" else "")
+        p = Path(ffmpeg_dir(need_subs)) / exe
+        if p.exists():
+            return str(p)
     p = shutil.which(name)
     if not p:
         sys.exit(f"{name} not found. Run the setup skill first (it installs ffmpeg and yt-dlp).")

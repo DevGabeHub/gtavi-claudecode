@@ -11,7 +11,8 @@ Do the work yourself. Ask the human only what is listed here.
 
 Check each with `ffmpeg -version`, `yt-dlp --version`, `python -c "import faster_whisper, numpy"`. Install only what is missing:
 
-- ffmpeg. Windows: `winget install --id Gyan.FFmpeg -e --source winget`. macOS: `brew install ffmpeg`. Linux: `sudo apt install -y ffmpeg`
+- ffmpeg. Windows: `winget install --id Gyan.FFmpeg -e --source winget`. macOS: `brew install ffmpeg-full` (not plain `ffmpeg`: it has no libass, so captions cannot be burned in; ffmpeg-full is keg-only and the scripts find it on their own). Linux: `sudo apt install -y ffmpeg`
+- Captions need ffmpeg with libass. Check with `ffmpeg -hide_banner -filters | grep subtitles` (on macOS also `/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg`). No `subtitles` line means the clip cutter will stop: install the build above, or set `FFMPEG_DIR` to the folder of an ffmpeg that has it.
 - Python packages, all systems: `python -m pip install -U -r "${CLAUDE_PLUGIN_ROOT}/requirements.txt"` (faster-whisper, numpy, requests and a fresh yt-dlp; the scripts prefer the pip yt-dlp, because an old yt-dlp gets HTTP 403 from YouTube)
 - Re-run the pip line once a week: YouTube changes often and yt-dlp updates follow.
 
