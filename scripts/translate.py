@@ -85,7 +85,7 @@ def make_voice(lang, text, dest):
 
 def render(src, s0, e0, layout, cam, ass, mp4, voice_mp3=None):
     v = video_filter(layout, cam, ass)
-    cmd = [tool("ffmpeg"), "-y", "-v", "error", "-ss", f"{s0:.2f}", "-to", f"{e0:.2f}", "-i", src]
+    cmd = [tool("ffmpeg", need_subs=True), "-y", "-v", "error", "-ss", f"{s0:.2f}", "-to", f"{e0:.2f}", "-i", src]
     if voice_mp3:
         dur = float(ffprobe(voice_mp3)["format"]["duration"])
         tempo = f"atempo={min(2.0, dur / HOOK_SECONDS):.3f}," if dur > HOOK_SECONDS else ""
